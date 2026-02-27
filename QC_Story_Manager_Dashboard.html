@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1366">
+    <title>QC Story – Manager Dashboard</title>
+    <style>
+        :root {
+            --mahindra-red: #C8102E;
+            --border-dark: #000;
+            --bg-light: #f4f4f4;
+            --sidebar-width: 250px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: var(--bg-light); 
+            display: flex; 
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #2c3e50;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar-header {
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #1a252f;
+            border-bottom: 1px solid #34495e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-logo {
+            width: 24px; height: 24px;
+            background: var(--mahindra-red);
+            border-radius: 4px;
+        }
+        .nav-links {
+            flex: 1;
+            padding-top: 20px;
+        }
+        .nav-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .nav-item:hover { background: #34495e; }
+        .nav-item.active { background: var(--mahindra-red); font-weight: bold; }
+        
+        .nav-icon { width: 18px; text-align: center; }
+
+        /* Dashboard Widget Area (in sidebar for quick view) */
+        .mini-dashboard {
+            padding: 20px;
+            border-top: 1px solid #34495e;
+            background: #233342;
+        }
+        .mini-stat {
+            margin-bottom: 15px;
+        }
+        .mini-stat label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #95a5a6;
+            margin-bottom: 5px;
+        }
+        .mini-stat-val {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #f39c12; /* Pending */
+            color: white;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+
+        /* Content Views */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* Existing Form Styles (Scoped to .paper) */
+        .paper {
+            width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border: 2px solid var(--border-dark);
+            padding: 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        /* Header Section */
+        .header-main { border-bottom: 2px solid var(--border-dark); text-align: center; padding: 15px; position: relative; }
+        .header-logo-img { position: absolute; left: 15px; top: 15px; width: 40px; height: 40px; border-left: 4px solid var(--mahindra-red); border-bottom: 4px solid var(--mahindra-red); transform: rotate(45deg); }
+        .header-title { font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #000; }
+        .grid { display: grid; width: 100%; border-collapse: collapse; }
+        .cell { border: 1px solid var(--border-dark); padding: 8px; position: relative; }
+        .label-bg { background: #f2f2f2; font-weight: bold; font-size: 13px; color: #000; }
+        input, textarea, select { width: 100%; border: 1px solid #ccc; padding: 5px; font-size: 14px; outline: none; }
+        input:focus { border-color: var(--mahindra-red); }
+        .section-bar { background: #fff; border: 2px solid var(--border-dark); margin: 10px 0; font-weight: bold; padding: 5px 10px; display: inline-block; }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; }
+        .photo-box { border: 2px solid var(--border-dark); display: flex; flex-direction: column; height: 250px; }
+        .photo-header { color: #fff; text-align: center; padding: 8px; font-weight: bold; font-size: 14px; }
+        .photo-header.good, .photo-header.not-good, .photo-header.video, .photo-header.other { background: #ff0000; }
+        .photo-upload { flex: 1; border-bottom: 1px solid var(--border-dark); display: flex; align-items: center; justify-content: center; background: #fafafa; cursor: pointer; position: relative; overflow: hidden; font-size: 12px; color: #666; }
+        .photo-details { height: 35px; padding: 5px; background: #fff; border: none; border-top: 1px solid #000; }
+        .large-box { border: 2px solid var(--border-dark); min-height: 200px; padding: 10px; display: flex; flex-direction: column; }
+        .large-box-header { font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        .footer-grid { display: grid; grid-template-columns: 1fr 1.2fr 0.8fr; border-top: 2px solid var(--border-dark); }
+        
+        /* Manager Approval Panel */
+        .approval-panel {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .approval-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .approval-status-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #f39c12; /* default pending */
+        }
+        .approval-status-card.approved { border-left-color: #27ae60; background: #eafaf1; }
+        .approval-status-card.rejected { border-left-color: #c0392b; background: #fdedec; }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: 0.2s;
+        }
+        .btn-approve { background: #27ae60; color: white; }
+        .btn-approve:hover { background: #219150; }
+        .btn-reject { background: #c0392b; color: white; }
+        .btn-reject:hover { background: #a93226; }
+        
+        .comment-box {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: inherit;
+            margin-bottom: 20px;
+            resize: vertical;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo"></div>
+        <span>QC Manager</span>
+    </div>
+    
+    <div class="nav-links">
+        <div class="nav-item active" onclick="switchView('form', this)">
+            <span class="nav-icon">📄</span> QC Story Form
+        </div>
+        <div class="nav-item" onclick="switchView('list', this); fetchStories();">
+            <span class="nav-icon">📋</span> All Stories
+        </div>
+        <div class="nav-item" onclick="switchView('approvals', this)">
+            <span class="nav-icon">✓</span> Approvals
+        </div>
+    </div>
+
+    <div class="mini-dashboard">
+        <div class="mini-stat">
+            <label>Current Status</label>
+            <span id="sidebar-status" class="status-badge">Pending Review</span>
+        </div>
+        <div class="mini-stat">
+            <label>Days Open</label>
+            <div class="mini-stat-val">4</div>
+        </div>
+        <div class="mini-stat">
+            <label>Completion</label>
+            <div class="mini-stat-val">85%</div>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    
+    <!-- VIEW 1: THE FORM -->
+    <div id="view-form" class="view-section active">
+        <div class="paper">
+            <!-- Main Header -->
+            <div class="header-main">
+                <div class="header-logo-img"></div>
+                <div class="header-title">QC Story Project - MYB / MGB</div>
+            </div>
+
+            <!-- Project Info Row -->
+            <div class="grid" style="grid-template-columns: 1.5fr 4fr 1.5fr;">
+                <div class="cell label-bg">MYB Project Title :-</div>
+                <div class="cell"><input type="text" value="Improve Final Line Yield"></div>
+                <div class="cell label-bg">QC Story<br>Sr. No. :-</div>
+            </div>
+
+            <!-- Dates Row -->
+            <div class="grid" style="grid-template-columns: 1.5fr 1.5fr 1.5fr 1.5fr;">
+                <div class="cell label-bg">Start Date :</div>
+                <div class="cell"><input type="date" value="2025-01-10"></div>
+                <div class="cell label-bg">Completion Date :</div>
+                <div class="cell"><input type="date" value="2025-03-12"></div>
+            </div>
+
+            <!-- Team Members -->
+            <div class="cell" style="min-height: 100px;">
+                <div class="label-bg">Team Members :</div>
+                <textarea rows="4" style="border:none;">Team Leader :- Rajesh Kumar
+Mentor - Anita Desai
+Team Members : Sunil, Amit, Priya</textarea>
+            </div>
+
+            <!-- Section 1: 5W/1H -->
+            <div style="padding: 0 10px;">
+                <div class="section-bar">1. Select the Theme/ Problem (5W/1H)</div>
+                <div class="grid" style="grid-template-columns: 1.5fr 4fr;">
+                    <div class="cell label-bg">Problem in Brief</div><div class="cell"><input type="text"></div>
+                    <div class="cell label-bg">What is the problem?</div><div class="cell"><input type="text"></div>
+                    <div class="cell label-bg">Where it has reported ?</div><div class="cell"><input type="text"></div>
+                    <div class="cell label-bg">Who has reported ?</div><div class="cell"><input type="text"></div>
+                    <div class="cell label-bg">When issue detected?</div><div class="cell"><input type="text"></div>
+                    <div class="cell label-bg">Which Model /Side /Failure?</div><div class="cell"><input type="text"></div>
+                </div>
+            </div>
+
+            <!-- Section 1.1: Photos -->
+            <div style="padding: 0 10px;">
+                <div class="section-bar">1.1 Add Ok & Not Ok Part /Issue Photo</div>
+                <div class="photo-grid">
+                    <div class="photo-box">
+                        <div class="photo-header good">Good</div>
+                        <div class="photo-upload" onclick="triggerUpload(this)">Click to Add Image</div>
+                        <input type="text" class="photo-details" placeholder="Details">
+                    </div>
+                    <div class="photo-box">
+                        <div class="photo-header not-good">Not Good</div>
+                        <div class="photo-upload" onclick="triggerUpload(this)">Click to Add Image</div>
+                        <input type="text" class="photo-details" placeholder="Details">
+                    </div>
+                    <div class="photo-box">
+                        <div class="photo-header video">Add Video of failure if any</div>
+                        <div class="photo-upload" onclick="triggerUpload(this)">Click to Add Video</div>
+                        <input type="text" class="photo-details" placeholder="Details">
+                    </div>
+                    <div class="photo-box">
+                        <div class="photo-header other">Other Details if any</div>
+                        <div class="photo-upload" onclick="triggerUpload(this)">Click to Add Image</div>
+                        <input type="text" class="photo-details" placeholder="Details">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 1.2: History -->
+            <div style="padding: 0 10px;">
+                <div class="section-bar">1.2. Add Detailed Background/History/Historical Trend of the issue -(Min 6-12 months of data)</div>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div class="large-box">
+                        <div class="large-box-header">Company Goal /Target mentioned for Model /Area /Deptt /Section- Add Which KPI/Goal your project is linked to-</div>
+                        <textarea style="flex:1; border:none;" placeholder=":"></textarea>
+                    </div>
+                    <div class="large-box">
+                        <div class="large-box-header">Add trend line of issue month on month</div>
+                        <div style="flex:1; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border: 1px dashed #ccc; font-size: 12px; color:#999;">[ Graph / Chart Placeholder ]</div>
+                        <textarea style="height:30px; border:none; margin-top:5px;" placeholder=":"></textarea>
+                    </div>
+                </div>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="cell"><span class="label-bg" style="display:block; margin-bottom:5px;">Add Severity of issue as per FMEA if applicable -</span><input type="text"></div>
+                    <div class="cell"><span class="label-bg" style="display:block; margin-bottom:5px;">Add relevent data /Graph if trend not applicable with justification</span><input type="text"></div>
+                </div>
+            </div>
+
+            <!-- Section 1.3: SMART Targets -->
+            <div style="padding: 0 10px;">
+                <div class="section-bar">1.3. Select SMART targets (Specific, Measurable, Attainable, Realistic, Time bound)</div>
+                <div class="cell" style="min-height: 100px; border-width: 2px;">
+                    <p style="font-size: 14px; margin-bottom: 10px;">Reduce/Improve --------- issue of --------------Model from ---% to --% by --- month ----year.</p>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="label-bg">Target -</span>
+                        <input type="text" style="width: 300px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Sign-off -->
+            <div class="footer-grid">
+                <div class="grid" style="grid-template-columns: 1fr;">
+                    <div class="cell"><span class="label-bg">CFT Name:</span> <input type="text" placeholder="Name"></div>
+                    <div class="cell"><span class="label-bg">Product Unit :</span> <input type="text" placeholder="Name of PU"></div>
+                </div>
+                <div class="grid" style="grid-template-columns: 1fr;">
+                    <div class="cell"><span class="label-bg">Prepared By :</span> <input type="text" placeholder="Name of officer"></div>
+                    <div class="cell"><span class="label-bg">Approved By :</span> <input type="text" placeholder="Name of Approver"></div>
+                </div>
+                <div class="cell label-bg">
+                    Type of Project -
+                    <textarea rows="4" style="background:transparent; border:none; margin-top:10px;"></textarea>
+                </div>
+            </div>
+            
+            <div style="padding: 20px; text-align: right;">
+                 <button style="background: var(--mahindra-red); color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer;" onclick="saveToSharePoint(); switchView('approvals')">Submit for Review ›</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: ALL STORIES LIST -->
+    <div id="view-list" class="view-section">
+        <div class="approval-panel" style="max-width: 1100px;">
+            <div class="approval-header">
+                <h2>All QC Stories (SharePoint Data)</h2>
+                <p style="color: #666; font-size: 14px; margin-top: 5px;">Showing live data from your SharePoint list.</p>
+            </div>
+            <table id="stories-table" style="width:100%; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid var(--mahindra-red);">
+                        <th style="padding: 12px; text-align: left;">QCS No.</th>
+                        <th style="padding: 12px; text-align: left;">Project Title</th>
+                        <th style="padding: 12px; text-align: left;">Start Date</th>
+                        <th style="padding: 12px; text-align: left;">Status</th>
+                        <th style="padding: 12px; text-align: left;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="stories-body">
+                    <!-- Data loaded via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- VIEW 3: APPROVALS -->
+        <div class="approval-panel">
+            <div class="approval-header">
+                <h2>Manager Approval Console</h2>
+                <p style="color: #666; font-size: 14px; margin-top: 5px;">Review pending QC Story submissions.</p>
+            </div>
+
+            <div id="status-card" class="approval-status-card">
+                <div>
+                    <div style="font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase;">Current Status</div>
+                    <div id="status-text" style="font-size: 18px; font-weight: bold; color: #f39c12;">Pending Manager Review</div>
+                </div>
+                <div>
+                    <span style="font-size: 12px; color: #666;">Last Updated: Today 10:45 AM</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 10px; font-size: 16px;">Manager Comments</h3>
+                <textarea id="mgr-comment" class="comment-box" rows="5" placeholder="Enter feedback, required changes, or approval notes here..."></textarea>
+            </div>
+
+            <div style="text-align: right; border-top: 1px solid #eee; padding-top: 20px;">
+                <button class="btn-action btn-reject" onclick="setStatus('Rejected')">Reject / Request Changes</button>
+                <button class="btn-action btn-approve" onclick="setStatus('Approved')">Approve QC Story</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    async function saveToSharePoint() {
+        const storyData = {
+            project_title: document.querySelector('input[value="Improve Final Line Yield"]').value,
+            qcs_no: "QCS-2026-003",
+            start_date: document.querySelector('input[type="date"]').value,
+            completion_date: document.querySelectorAll('input[type="date"]')[1].value,
+            team_members: document.querySelector('textarea').value,
+            problem_brief: document.querySelectorAll('input[type="text"]')[1].value,
+            status: document.getElementById('sidebar-status').innerText
+        };
+
+        try {
+            const response = await fetch('http://localhost:8000/save_to_sharepoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(storyData)
+            });
+            const result = await response.json();
+            alert('SharePoint Sync: ' + result.message);
+        } catch (error) {
+            console.error('Error saving to SharePoint:', error);
+            alert('Note: SharePoint Bridge not running. Check console for details.');
+        }
+    }
+
+    async function fetchStories() {
+        const body = document.getElementById('stories-body');
+        body.innerHTML = '<tr><td colspan="5" style="padding:20px; text-align:center;">Loading from SharePoint...</td></tr>';
+        
+        try {
+            const response = await fetch('http://localhost:8000/get_from_sharepoint');
+            const data = await response.json();
+            
+            body.innerHTML = '';
+            data.forEach(item => {
+                const row = `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding:12px;">${item.QCS_No || 'N/A'}</td>
+                        <td style="padding:12px;">${item.Title || 'N/A'}</td>
+                        <td style="padding:12px;">${item.StartDate || 'N/A'}</td>
+                        <td style="padding:12px;"><span class="status-badge" style="background:${item.Status === 'Approved' ? '#27ae60' : '#f39c12'}">${item.Status || 'Pending'}</span></td>
+                        <td style="padding:12px;"><button onclick="alert('Viewing: ${item.Title}')" style="cursor:pointer; border:none; background:#3498db; color:white; padding:5px 10px; border-radius:3px;">View</button></td>
+                    </tr>
+                `;
+                body.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (error) {
+            body.innerHTML = '<tr><td colspan="5" style="padding:20px; text-align:center; color:red;">Failed to connect to SharePoint Bridge.</td></tr>';
+        }
+    }
+
+    function triggerUpload(el) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            el.innerHTML = `<span style="font-size:12px; color:green;">File Selected: ${file.name}</span>`;
+        };
+        input.click();
+    }
+
+    function switchView(viewName, navEl) {
+        // Hide all views
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        // Show target view
+        document.getElementById('view-' + viewName).classList.add('active');
+        
+        // Update nav state
+        if(navEl) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            navEl.classList.add('active');
+        } else {
+             // Handle programmatic switch (e.g. from Submit button)
+             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+             // Assuming 2nd item is Approvals
+             if(viewName === 'approvals') document.querySelectorAll('.nav-item')[1].classList.add('active');
+        }
+    }
+
+    function setStatus(status) {
+        const card = document.getElementById('status-card');
+        const text = document.getElementById('status-text');
+        const badge = document.getElementById('sidebar-status');
+        const comment = document.getElementById('mgr-comment').value;
+
+        if (status === 'Approved') {
+            card.className = 'approval-status-card approved';
+            text.style.color = '#27ae60';
+            badge.style.background = '#27ae60';
+            alert('QC Story Approved Successfully!\n\nComments saved: ' + (comment || "No comments"));
+        } else {
+            card.className = 'approval-status-card rejected';
+            text.style.color = '#c0392b';
+            badge.style.background = '#c0392b';
+            alert('QC Story Rejected.\n\nFeedback sent to team: ' + (comment || "Please review changes."));
+        }
+        
+        text.innerText = status;
+        badge.innerText = status;
+    }
+</script>
+
+</body>
+</html>
